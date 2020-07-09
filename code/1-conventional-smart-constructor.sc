@@ -1,7 +1,4 @@
-final case class User private(username: String)
-
-object User {
-  def make(username: String): Either[String, User] =
+def validateUser(username: String): Either[String, String] =
     if (username.isEmpty)
       Left("Username cannot be empty")
     else if (username.length > 20)
@@ -9,9 +6,8 @@ object User {
     else if (!username.forall(_.isLetterOrDigit))
       Left("Usernames can only contain alphanumeric characters")
     else
-      Right(User(username))
-}
+      Right(username)
 
-User.make("xX_ŚePhI®OtH_Xx")
+validateUser("xX_ŚePhI®OtH_Xx")
 
-User.make("Luna")
+validateUser("Luna")

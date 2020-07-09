@@ -1,7 +1,0 @@
-[error] /home/gordon/ovodev/refined-article/project/Dependencies.scala:32:13: type mismatch;
-[error]  found   : List[sbt.librarymanagement.ModuleID]
-[error]  required: sbt.ModuleID
-[error]     (which expands to)  sbt.librarymanagement.ModuleID
-[error]     Library.cirisCore
-[error]             ^
-[error] one error found
