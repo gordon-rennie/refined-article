@@ -42,7 +42,7 @@ Lets see if we can improve the situation; enter refinement types!
 The building blocks are simple: 
 
 * given some type `T` 
-* and a predicate test `P`
+* and a predicate test expressed as a type `P`
 * then our refinement type is `T Refined P`, and it contains only the values in `T` for which `P` is true
 
 Scala's `refined` library provides this functionality, and has a large number of built-in predicate types that we can use for our `P`. For example, a frequently useful refinement type is for a non-empty string (`type NonEmptyString = String Refined NonEmpty`), which is predefined for us and comes with its own smart constructor:
@@ -94,7 +94,7 @@ What have we gained here?
 * our predicates are expressed in a declarative way in the type alias definition
 * the return type is our `Username` alias: we’ve retained the information that the base `String` has been validated, and have a contextually useful name
 * we were given validation logic and error reporting essentially for free
-  * The error messages are clearly quite robotic! They are generally sufficient for developers, and can be adapted to be more pleasant for end-users when needed.
+  * The error messages are clearly quite robotic! They are generally sufficient for developers, and can be adapted to be more pleasant for end users when needed.
 
 
 We gained this with no runtime cost; our compiled bytecode will see only a `String`. (For refinements on value types[^3] such as `Int`, we would incur only the small cost of boxing it). 
@@ -103,7 +103,7 @@ Let's look at some more examples, and how our refinement types can be used with 
 
 > **_NOTE:_** It might seem strange seeing literal values in your predicate types, as in `Int Refined GreaterEqual[0]`. Under the hood, the value `0` is being treated as a literal-based singleton type[^4], newly supported in Scala 2.13.
 >
-> If you are on an earlier version of Scala, `refined` has you use a `shapeless` implementation instead, which is simple but less readable: ``Int Refined GreaterEqual[W.`0`.T]`` – refer to the docs[^1].
+> If you are on an earlier version of Scala, `refined` has you use a `shapeless` implementation instead, which is simple but less readable: ``Int Refined GreaterEqual[W.`0`.T]`` — refer to the docs[^1].
 
 ## Refined In Action
 
@@ -133,6 +133,7 @@ $ val x: Int Refined Positive = 3
 $ x.value  // unwraps the value
 | val res2: Int = 3
 
+
 import eu.timepit.refined.string.Url
 
 $ val y: String Refined Url = "htp://example.com"
@@ -155,17 +156,97 @@ We had to explicitly type our variables, *e.g.* `val x: PosInt` — otherwise th
 
 ### Runtime Refinement
 
-For the majority of the code we write, the data we process is not known at compile time. Rather, it comes from the external boundaries of our services, in the form of HTTP requests or responses, events we consume, files we read, or databases we query. In these cases we must safely convert the incoming data to our refinement types, and gracefully handle invalid values. Let’s firstly look at how we can do this manually, then explore some integration libraries that can do all the heavy lifting for us.
+The majority of data we process is not known at compile time. Rather, it comes from the external boundaries of our services, in the form of HTTP requests or responses, events we consume, files we read, or databases we query. In these cases we must safely convert the incoming data to our refinement types, and gracefully handle invalid values. Let’s firstly look at how we can do this manually, then explore some integration libraries that can do all the heavy lifting for us.
 
 ## Manual Validation
 
-from a type with raw Strings and Ints to a type with refined fields, showing error reporting benefits
+Let’s define a toy domain entity using refinement types:
+
+```scala
+type AccountNumber = String Refined (Size[Equal[8]] And Forall[Digit])
+type Username = String Refined (Forall[LetterOrDigit] And Size[OpenClosed[0, 20]])
+type EmailAddress = String Refined MatchesRegex[
+  "^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\\.[a-zA-Z]+$" // simplified regex!
+]
+type Score = Int Refined Interval.Closed[0, 100]
+
+object AccountNumber extends RefinedTypeOps[AccountNumber, String]
+object Username extends RefinedTypeOps[Username, String]
+object EmailAddress extends RefinedTypeOps[EmailAddress, String]
+object Score extends RefinedTypeOps[Score, Int]
+
+final case class Account(
+  accountNumber: AccountNumber,
+  username: Username,
+  email: EmailAddress,
+  score: Score
+)
+```
+
+Occasionally you will find yourself needing to refine raw values yourself, for example because you are interfacing with part of a codebase which wasn’t written with refinement types, In these situations we can elegantly compose together the `Either`s returned by the smart constructor, for example:
+
+```scala
+import cats.syntax.either._  // for `toEitherNel`
+import cats.syntax.parallel._  // for `parMapN`
+
+def makeAccount(
+  accountNumber: String,
+  username: String,
+  email: String,
+  score: Int
+): Either[NonEmptyList[String], Account] =
+  (
+    AccountNumber.from(accountNumber).leftMap("invalid AccountNumber: " + _).toEitherNel,
+    Username.from(username).leftMap("invalid Username: " + _).toEitherNel,
+    EmailAddress.from(email).leftMap("invalid EmailAddress: " + _).toEitherNel,
+    Score.from(score).leftMap("invalid Score: " + _).toEitherNel
+  ).parMapN(Account)
+
+$ makeAccount("00000042", "Cloud", "cloud@avalanche.com", 100)
+| val res0: Either[cats.data.NonEmptyList[String],Account] = Right(Account(00000042,Cloud,cloud@avalanche.com,100))
+
+$ makeAccount("58", "!*Invalid™", "woops", -3)
+| val res1: Either[cats.data.NonEmptyList[String],Account] = Left(NonEmptyList(invalid AccountNumber: <...>, invalid Username: <...>, invalid EmailAddress: <...>, invalid Score: <...>))
+```
+
+In this example I used `cats` syntax extension methods to combine the validation results, either returning a valid `Account` or a list of errors.
+
+> **_NOTE:_** The usual `Either` behaviour is to fail fast on the first error. We have taken advantage of the error-collecting semantics when using `.parMapN` on a tuple of `Either[NonEmptyList[E], A]`. This is  equivalent to converting from the `Either` to `ValidatedNel`s and back again — a nice trick I picked up from a talk by Gabriel Volpe[^5].
 
 ## Library Integration
 
-explain required integration library imports
+I’ve found the greatest benefits in using refinement types when I can push validation right to the edges of my application. Fortunately, `refined` benefits from great support in the wider Scala ecosystem, and we can often get support for free. Let’s look at some examples.
 
 ### JSON Parsing
+
+Let’s consider an example where we want to decode requests using the Circe JSON parsing library. Taking advantage of Circe’s generic codec derivation, this already works for a request of base types:
+
+```scala
+import io.circe._
+import io.circe.generic.semiauto._
+
+final case class RawRequest(
+  accountNumber: String,
+  score: Int
+)
+
+$ val rawDecoder: Decoder[RawRequest] = Decoder.forProduct2("account_number", "score")(RawRequest)
+| val rawDecoder: io.circe.Decoder[RawRequest] = io.circe.ProductDecoders$$anon$2@79a6d61c
+```
+
+We hit a compiler error if we try to use refinement types in our request object, however:
+
+```scala
+final case class RefinedRequest(
+  accountNumber: AccountNumber,
+  score: Score
+)
+
+$ val refinedDecoder: Decoder[RefinedRequest] = Decoder.forProduct2("account_number", "score")(RefinedRequest)
+| Error:(31, 49) could not find implicit value for parameter decodeA0: io.circe.Decoder[AccountNumber]
+```
+
+The cause of the error is that Circe doesn’t have the required typeclass instances for our refinement types to do its job. This is easily fixed: Circe has a `circe-refined` module, which we can add to our project and import:
 
 JSON example with error reporting
 
@@ -177,7 +258,7 @@ ciris example?
 
 List integration libraries
 
-## Refined Types Don't Replace Data Modelling
+## Refinement Types Don't Replace Data Modelling
 
 give example of refined NEList vs. cats NEList, or maybe an email example.
 
@@ -194,3 +275,4 @@ give example of refined NEList vs. cats NEList, or maybe an email example.
 [^3]:https://docs.scala-lang.org/tour/unified-types.html
 [^4]:https://docs.scala-lang.org/sips/42.type.html
 
+[^5]:"Why types matter” talk at Scala Love 2020: https://www.youtube.com/watch?v=n1Y2V4zCZdQ

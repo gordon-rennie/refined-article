@@ -19,8 +19,7 @@ import eu.timepit.refined.string.Url
 // Error:(8, 29) Url predicate failed: unknown protocol: htp
 
 
-def sayHello(times: NonNegInt): String =
-  "hello" * times.value
+def sayHello(times: NonNegInt): String = "hello" * times.value
 
 sayHello(2)
 

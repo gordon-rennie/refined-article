@@ -19,6 +19,15 @@ object Dependencies {
 
     val ciris = List("is.cir" %% "ciris", "is.cir" %% "ciris-refined")
       .map(_ % Version.ciris)
+
+    val circe = Seq(
+      "io.circe" %% "circe-core",
+      "io.circe" %% "circe-generic",
+      "io.circe" %% "circe-parser",
+      "io.circe" %% "circe-shapes",
+      "io.circe" %% "circe-refined",
+      "io.circe" %% "circe-literal"
+    ).map(_ % Version.circe)
   }
 
   lazy val dependencies: List[ModuleID] = List(
@@ -27,5 +36,5 @@ object Dependencies {
     Library.fs2,
     Library.refined,
     Library.refinedCats
-  ) ++ Library.ciris
+  ) ++ Library.ciris ++ Library.circe
 }
