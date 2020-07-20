@@ -6,6 +6,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 
 refineMV[NonEmpty]("foo")  // explicit refinement
 NonEmptyString("bar") // alternative explicit refinement using companion object's `RefinedTypeOps`
+NonEmptyString("")  // fails at compile time!
 
 import eu.timepit.refined.auto._  // enables auto-refinement
 import eu.timepit.refined.numeric.Positive

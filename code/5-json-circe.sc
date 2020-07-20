@@ -13,7 +13,6 @@ object Score extends RefinedTypeOps[Score, Int]
 
 import io.circe.Decoder
 import io.circe.generic._
-import io.circe.numbers._
 
 final case class RawRequest(
   accountNumber: String,
@@ -27,9 +26,16 @@ final case class RefinedRequest(
   score: Score
 )
 
-//import io.circe.refined._
-implicit val test: Decoder[AccountNumber] = Decoder.decodeString.emap(AccountNumber.from)
+import io.circe.refined._
 
-val refinedDecoder: Decoder[RefinedRequest] = {
+val refinementDecoder: Decoder[RefinedRequest] =
   Decoder.forProduct2("account_number", "score")(RefinedRequest)
-}
+
+import io.circe.literal._  // for `json` interpolator
+
+val validRequest = json"""{"account_number" : "12345678", "score" : 55 }"""
+val badRequest = json"""{"account_number" : "13", "score" : 55 }"""
+
+refinementDecoder.decodeJson(validRequest)
+
+refinementDecoder.decodeJson(badRequest)
