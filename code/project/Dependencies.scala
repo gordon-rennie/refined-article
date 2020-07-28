@@ -8,6 +8,7 @@ object Dependencies {
     val refined = "0.9.14"
     val ciris = "1.0.4"
     val circe = "0.13.0"
+    val doobie = "0.9.0"
   }
 
   object Library {
@@ -28,6 +29,11 @@ object Dependencies {
       "io.circe" %% "circe-refined",
       "io.circe" %% "circe-literal"
     ).map(_ % Version.circe)
+
+    val doobie = List(
+      "org.tpolecat" %% "doobie-core",
+      "org.tpolecat" %% "doobie-refined"
+    ).map(_ % Version.doobie)
   }
 
   lazy val dependencies: List[ModuleID] = List(
@@ -36,5 +42,5 @@ object Dependencies {
     Library.fs2,
     Library.refined,
     Library.refinedCats
-  ) ++ Library.ciris ++ Library.circe
+  ) ++ Library.ciris ++ Library.circe ++ Library.doobie
 }

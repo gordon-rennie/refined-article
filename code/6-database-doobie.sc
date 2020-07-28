@@ -1,4 +1,6 @@
 import cats.data.NonEmptyList
+import cats.effect.Bracket
+import doobie.util.transactor.Transactor
 import eu.timepit.refined.api.{Refined, RefinedTypeOps}
 import eu.timepit.refined.boolean.And
 import eu.timepit.refined.char.{Digit, LetterOrDigit}
@@ -27,22 +29,29 @@ final case class Account(
   score: Score
 )
 
-import cats.syntax.either._  // for `toEitherNel`
-import cats.syntax.parallel._  // for `parMapN`
+// recall
+// final case class Account(
+//   accountNumber: AccountNumber,
+//   username: Username,
+//   email: EmailAddress,
+//   score: Score
+// )
 
-def makeAccount(
-  accountNumber: String,
-  username: String,
-  email: String,
-  score: Int
-): Either[NonEmptyList[String], Account] =
-  (
-    AccountNumber.from(accountNumber).leftMap("invalid AccountNumber: " + _).toEitherNel,
-    Username.from(username).leftMap("invalid Username: " + _).toEitherNel,
-    EmailAddress.from(email).leftMap("invalid EmailAddress: " + _).toEitherNel,
-    Score.from(score).leftMap("invalid Score: " + _).toEitherNel,
-  ).parMapN(Account)
+import doobie.implicits._
+import doobie.refined.implicits._
 
-makeAccount("00000042", "Cloud", "cloud@avalanche.com", 100)
+final class AccountRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transactor[F]) {
 
-makeAccount("58", "!*Invalid™", "woops", -3)
+  def find(accountNumber: AccountNumber): F[Option[Account]] = {
+    sql"""SELECT account_number,
+         |       username,
+         |       email,
+         |       score
+         |FROM accounts
+         |WHERE account_number=$accountNumber
+         |""".stripMargin
+      .query[Account]
+      .option
+      .transact(transactor)
+  }
+}
