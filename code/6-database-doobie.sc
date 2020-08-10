@@ -22,6 +22,11 @@ object Username extends RefinedTypeOps[Username, String]
 object EmailAddress extends RefinedTypeOps[EmailAddress, String]
 object Score extends RefinedTypeOps[Score, Int]
 
+
+import doobie.implicits._
+import doobie.refined.implicits._  // for support for refinement types
+import cats.effect.IO
+
 final case class Account(
   accountNumber: AccountNumber,
   username: Username,
@@ -29,20 +34,9 @@ final case class Account(
   score: Score
 )
 
-// recall
-// final case class Account(
-//   accountNumber: AccountNumber,
-//   username: Username,
-//   email: EmailAddress,
-//   score: Score
-// )
+final class AccountRepository(transactor: Transactor[IO]) {
 
-import doobie.implicits._
-import doobie.refined.implicits._
-
-final class AccountRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transactor[F]) {
-
-  def find(accountNumber: AccountNumber): F[Option[Account]] = {
+  def find(accountNumber: AccountNumber): IO[Option[Account]] = {
     sql"""SELECT account_number,
          |       username,
          |       email,
