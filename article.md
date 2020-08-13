@@ -2,7 +2,7 @@
 
 We devote a significant amount of time and attention as developers to ensuring that the data we receive and process is valid. We might enforce that usernames fall within a character limit, reject malformed URLs, guard against paying negative values, or countless more domain-specific cases. In these examples, the type system could not eliminate the errors: we may accept a parameter `username: String`, but we likely have no intention of allowing the empty string, strange Unicode glyphs, or strings thousands of characters in length!
 
-In this blog post I will explore _refinement types_ and their implementation in Scala's `refined` library [^1]. Refinement types are a powerful tool for restricting the values passed into our logic, which help us fail fast and gracefully on invalid values. I'd particularly like to highlight the excellent interoperability of `refined` with Scala’s libraries, and how this can make our programs safer and easier to reason about for very little effort. 
+In this blog post I will explore _refinement types_ and their implementation in Scala's [`refined` library](https://github.com/fthomas/refined). Refinement types are a powerful tool for restricting the values passed into our logic, which help us fail fast and gracefully on invalid values. I'd particularly like to highlight the excellent interoperability of `refined` with Scala’s libraries, and how this can make our programs safer and easier to reason about for very little effort. 
 
 ## Conventional Validation
 
@@ -37,7 +37,7 @@ Lets see if we can improve the situation; enter refinement types!
 
 > In type theory, a refinement type is a type endowed with a predicate which is assumed to hold for any element of the refined type.
 >
-> &mdash; the original Haskell `refined` library [^2]
+> &mdash; the original [Haskell `refined` library](https://github.com/nikita-volkov/refined)
 
 The building blocks are simple: 
 
@@ -64,7 +64,7 @@ $ NonEmptyString.from("hello")
 * collections: `MinSize[x]`, `Forall[P]`, `Exists[P]`
 * strings: `EndsWith[s]`, `MatchesRegex[s]`, `Url`, `ValidFloat`
 
-(The full selection can be found in the documentation[^1])
+(The full selection can be found in [the documentation](https://github.com/fthomas/refined))
 
 From this rich set of predicates, some of which operate on or combine other predicates, we can express very diverse constraints. Let's revisit our `username` example:
 
@@ -97,13 +97,13 @@ Our refinement type `Username` and its smart constructor have replaced the valid
   * The error messages are clearly quite robotic! They are generally sufficient for developers, and can be adapted to be more pleasant for end users when needed.
 
 
-We gained this with no runtime cost; our compiled bytecode will see only a `String`. (For refinements on value types[^3] such as `Int`, we would incur only the small cost of boxing it). 
+We gained this with no runtime cost; our compiled bytecode will see only a `String`. (For refinements on [value types](https://docs.scala-lang.org/tour/unified-types.html) such as `Int`, we would incur only the small cost of boxing it). 
 
 Let's look at some more examples, and how our refinement types can be used with other libraries.
 
-> **_Note:_** It might seem strange seeing literal values in your predicate types, as in `Int Refined GreaterEqual[0]`. Under the hood, the value `0` is being treated as a literal-based singleton type[^4], newly supported in Scala 2.13.
+> **_Note:_** It might seem strange seeing literal values in your predicate types, as in `Int Refined GreaterEqual[0]`. Under the hood, the value `0` is being treated as a [literal-based singleton type](https://docs.scala-lang.org/sips/42.type.html), newly supported in Scala 2.13.
 >
-> If you are on a pre-2.13 version of Scala,  you must use a `shapeless` implementation instead, which is slightly less readable (but perfectly fine!): ``Int Refined GreaterEqual[W.`0`.T]`` — refer to the `refined` docs[^1].
+> If you are on a pre-2.13 version of Scala,  you must use a `shapeless` implementation instead, which is slightly less readable (but perfectly fine!): ``Int Refined GreaterEqual[W.`0`.T]`` — refer to the [`refined` docs](https://github.com/fthomas/refined).
 
 > **_Tip:_** We can take advantage of Scala’s postfix notation support for better readability in our types. In fact, we already have: `refined`’s type definitions of the form `T Refined P` are equivalent to `Refined[T, P]`. Similarly, we could rewrite our previous example as `type Username = String Refined (Forall[LetterOrDigit] And Size[OpenClosed[0, 20]])`
 
@@ -188,7 +188,7 @@ final case class Account(
 
 Occasionally you will find yourself needing to refine raw values yourself, for example because you are interfacing with part of your codebase that wasn’t written with refinement types. In these situations we have to perform safe conversions to the refinement types, returning an `Either[String, RefinedType]`, compose the success results, and pass them into our logic.
 
-Fortunately, `Either` forms a monad and we can compose them easily in Scala, for example using a for-comprehension. We can do better still using the `cats` library[^5]:
+Fortunately, `Either` forms a monad and we can compose them easily in Scala, for example using a for-comprehension. We can do better still using the [`cats` library](https://github.com/typelevel/cats):
 
 ```scala
 import cats.syntax.either._  // for `toEitherNel`
@@ -216,7 +216,7 @@ $ makeAccount("58", "!*Invalid™", "woops@goggle", -3)
 
 This implementation will return a valid `Account` or a list of every error encountered. We have also `leftMap`ped the error channels to provide a more pleasant error message.
 
-> **_Note:_** The usual `Either` behaviour is to fail fast and report only the first error encountered. We have taken advantage of the error-accumulating semantics when using `.parMapN` on a tuple of `Either[NonEmptyList[E], A]`. If you are familiar with `Validated`, this is  equivalent to converting from the `Either` to `ValidatedNel`s and back again — a nice trick I picked up from a talk by Gabriel Volpe[^6].
+> **_Note:_** The usual `Either` behaviour is to fail fast and report only the first error encountered. We have taken advantage of the error-accumulating semantics when using `.parMapN` on a tuple of `Either[NonEmptyList[E], A]`. If you are familiar with `Validated`, this is  equivalent to converting from the `Either` to `ValidatedNel`s and back again — a nice trick I picked up from [a talk by Gabriel Volpe](https://www.youtube.com/watch?v=n1Y2V4zCZdQ).
 
 ### Library Integration
 
@@ -224,7 +224,7 @@ The refinement logic we just wrote is okay, but I’ve found the greatest benefi
 
 #### JSON Parsing
 
-Consider an example where we want to decode JSON-encoded requests, in this case using the `circe` JSON library[^7]. Taking advantage of Circe’s generic codec derivation, we can already get codecs for requests of base types:
+Consider an example where we want to decode JSON-encoded requests, in this case using the [`circe` JSON library](https://github.com/circe/circe). Taking advantage of Circe’s generic codec derivation, we can already get codecs for requests of base types:
 
 ```scala
 import io.circe._
@@ -278,7 +278,7 @@ We used `circe` in our example, but integration libraries are also available for
 
 #### Database
 
-Why stop at our HTTP endpoints? We can read and write from SQL databases using our refinement types, in this example using the `doobie` library[^8] and its `doobie-refined` module to implement a `find` method:
+Why stop at our HTTP endpoints? We can read and write from SQL databases using our refinement types, in this example using the [`doobie` library](https://github.com/tpolecat/doobie) and its `doobie-refined` module to implement a `find` method:
 
 ```scala
 import doobie.implicits._
@@ -323,11 +323,11 @@ My examples above covered JSON and SQL examples, but these are just scratching t
 * **Avro**: [avro4s](https://github.com/sksamuel/avro4s/tree/master/avro4s-refined/src), [vulcan](https://github.com/fd4s/vulcan/tree/master/modules/refined/src)
 * **Miscellaneous**: [ScalaCheck](https://github.com/fthomas/refined/tree/master/modules/scalacheck/shared/src), [Cats typeclasses](https://github.com/fthomas/refined/tree/master/modules/cats/shared/src), shapeless
 
-(the `refined` readme[^1] describes a fuller list of support libraries)
+(the [`refined` readme](https://github.com/fthomas/refined) describes a fuller list of support libraries)
 
 ## Refinement Types Don't Replace Data Modelling
 
-Refinement types aren’t a panacea, and they do not replace data modelling. An objective of data modelling is to *make illegal states unrepresentable*[^9], and refinement types aren’t able to achieve this with the same compile-time safety as algebraic data types (ADTs). Consider an example where we want to represent the time of day as “day” or “night”:
+Refinement types aren’t a panacea, and they do not replace data modelling. An objective of data modelling is to *make illegal states unrepresentable*, and refinement types aren’t able to achieve this with the same compile-time safety as [algebraic data types](https://en.wikipedia.org/wiki/Algebraic_data_type) (ADTs). Consider an example where we want to represent the time of day as “day” or “night”:
 
 ```scala
 // refinement type implementation
@@ -363,18 +363,5 @@ The best approach is inevitably situational: refinement types are well suited fo
 * Refinement types are simply a type, `T`, that pass a predicate test `P`
 * `refined` is the go-to Scala library for refinement types
 * Using `refined` gives us free validation, descriptive type aliases, and leaves less room for bugs
-* There is an excellent ecosystem of `refined` interoperability libraries we can use to push validation right to the edge of our applications and drastically reduce error handling boilerplate
-* When defining a refinement type, declare a companion object that `extends RefinedTypeOps[MyRefinedType, BaseType]` for some helpful methods, including a runtime smart constructor (`from`) and a compile-time constructor (`apply`)
-
-
-
-[^1]: https://github.com/fthomas/refined
-[^2]:https://github.com/nikita-volkov/refined
-[^3]:https://docs.scala-lang.org/tour/unified-types.html
-[^4]:https://docs.scala-lang.org/sips/42.type.html
-
-[^5]:https://github.com/typelevel/cats
-[^6]:"Why types matter”, Scala Love 2020: https://www.youtube.com/watch?v=n1Y2V4zCZdQ
-[^7]: https://github.com/circe/circe
-[^8]: https://github.com/tpolecat/doobie
-[^9]: A phrase coined by Yaron Minsky, https://blog.janestreet.com/effective-ml-revisited/
+* There is an excellent ecosystem of `refined` interoperability libraries we can use to push validation right to the edge of our applications and drastically reduce validation boilerplate
+* When defining a refinement type, declare a companion object that `extends RefinedTypeOps[MyRefinedType, BaseType]` for some helpful methods, including a runtime smart constructor (`from`) and a compile time constructor (`apply`)
