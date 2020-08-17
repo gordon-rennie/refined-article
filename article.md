@@ -31,7 +31,7 @@ There are a couple of drawbacks with this approach:
 * successfully validated data remains typed as a `String`; we've "thrown away" the potentially useful information that it's an alphanumeric string of one to 20 characters
 * we've had to write and test the validation code, and will have plenty more similar code to write as our domain grows
 
-Lets see if we can improve the situation; enter refinement types!
+Lets see if we can improve the situation; enter *refinement types*!
 
 ## Refinement Types
 
@@ -66,7 +66,7 @@ $ NonEmptyString.from("hello")
 
 (The full selection can be found in [the documentation](https://github.com/fthomas/refined))
 
-From this rich set of predicates, some of which operate on or combine other predicates, we can express very diverse constraints. Let's revisit our `username` example:
+From this rich set of predicates we can express very diverse constraints. Let's revisit our `username` example:
 
 ```scala
 import eu.timepit.refined.api.{Refined, RefinedTypeOps}
@@ -91,7 +91,7 @@ $ Username.from("")
 
 Our refinement type `Username` and its smart constructor have replaced the validation logic we wrote previously. What have we gained by doing this?
 
-* our predicates are expressed in a declarative way in the type alias definition
+* our validations rules are expressed declaratively as a predicate in the type alias definition
 * the return type is our `Username` alias: we’ve retained the information that the base `String` has been validated, and have a contextually useful name
 * we were given validation logic and error reporting essentially for free
   * The error messages are clearly quite robotic! They are generally sufficient for developers, and can be adapted to be more pleasant for end users when needed.
