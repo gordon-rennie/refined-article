@@ -72,21 +72,17 @@ From this rich set of predicates we can express very diverse constraints. Let's 
 import eu.timepit.refined.api.{Refined, RefinedTypeOps}
 import eu.timepit.refined.boolean.And
 import eu.timepit.refined.char.LetterOrDigit
-import eu.timepit.refined.collection.{Forall, Size}
-import eu.timepit.refined.numeric.Interval
+import eu.timepit.refined.collection.Forall
 
-type Username = String Refined And[
-  Forall[LetterOrDigit],  // all chars must meet sub-predicate `LetterOrDigit`
-  Size[Interval.OpenClosed[0, 20]] // size must be gt 0, leq 20
-]
+type Username = String Refined (NonEmpty And MaxSize[20] And Forall[LetterOrDigit])
 
-object Username extends RefinedTypeOps[Username, String]  // gives us a `.from` smart constructor and more!
+object Username extends RefinedTypeOps[Username, String]  // "free" smart constructor amd more!
 
 $ Username.from("Tito")
 | val res2: Either[String,Username] = Right(Tito)
 
 $ Username.from("")
-| val res3: Either[String,Username] = Left(Right predicate of (() && ((0 > 0) && !(0 > 20))) failed: Predicate taking size() = 0 failed: Left predicate of ((0 > 0) && !(0 > 20)) failed: Predicate failed: (0 > 0).)
+| val res3: Either[String,Username] = Left(Left predicate of ((!isEmpty() && (!(0 < 0) && !(0 > 20))) && ()) failed: Left predicate of (!isEmpty() && (!(0 < 0) && !(0 > 20))) failed: Predicate isEmpty() did not fail.)
 ```
 
 Our refinement type `Username` and its smart constructor have replaced the validation logic we wrote previously. What have we gained by doing this?
@@ -105,7 +101,7 @@ Let's look at some more examples, and how our refinement types can be used with 
 >
 > If you are on a pre-2.13 version of Scala,  you must use a `shapeless` implementation instead, which is slightly less readable (but perfectly fine!): ``Int Refined GreaterEqual[W.`0`.T]`` — refer to the [`refined` docs](https://github.com/fthomas/refined).
 
-> **_Tip:_** We can take advantage of Scala’s postfix notation support for better readability in our types. In fact, we already have: `refined`’s type definitions of the form `T Refined P` are equivalent to `Refined[T, P]`. Similarly, we could rewrite our previous example as `type Username = String Refined (Forall[LetterOrDigit] And Size[OpenClosed[0, 20]])`
+> **_Tip:_** We can take advantage of Scala’s postfix notation support for better readability in our types. In fact, we already have: `refined`’s type definitions of the form `T Refined P` are equivalent to `Refined[T, P]`, and we have been defining our`P` as `NonEmpty And MaxSize[20]` instead of `And[NonEmpty, MaxSize[20]]`.
 
 ## Refined In Action
 
@@ -167,7 +163,7 @@ Let’s define a toy domain entity, `Account`, with fields with refinement types
 
 ```scala
 type AccountNumber = String Refined (Size[Equal[8]] And Forall[Digit])
-type Username = String Refined (Forall[LetterOrDigit] And Size[OpenClosed[0, 20]])
+type Username = String Refined (NonEmpty And MaxSize[20] And Forall[LetterOrDigit])
 type EmailAddress = String Refined MatchesRegex[
   "^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\\.[a-zA-Z]+$" // simplified regex!
 ]

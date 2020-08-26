@@ -2,14 +2,13 @@ import cats.data.NonEmptyList
 import eu.timepit.refined.api.{Refined, RefinedTypeOps}
 import eu.timepit.refined.boolean.And
 import eu.timepit.refined.char.{Digit, LetterOrDigit}
-import eu.timepit.refined.collection.{Forall, Size}
+import eu.timepit.refined.collection.{Forall, MaxSize, NonEmpty, Size}
 import eu.timepit.refined.generic.Equal
 import eu.timepit.refined.numeric.Interval
-import eu.timepit.refined.numeric.Interval.OpenClosed
 import eu.timepit.refined.string.MatchesRegex
 
 type AccountNumber = String Refined (Size[Equal[8]] And Forall[Digit])
-type Username = String Refined (Forall[LetterOrDigit] And Size[OpenClosed[0, 20]])
+type Username = String Refined (NonEmpty And MaxSize[20] And Forall[LetterOrDigit])
 type EmailAddress = String Refined MatchesRegex[
   "^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\\.[a-zA-Z]+$" // simplified regex!
 ]
