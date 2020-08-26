@@ -214,7 +214,7 @@ $ makeAccount("58", "!*Invalid™", "woops@goggle", -3)
 | val res1: Either[cats.data.NonEmptyList[String],Account] = Left(NonEmptyList(invalid AccountNumber: <...>, invalid Username: <...>, invalid EmailAddress: <...>, invalid Score: <...>))
 ```
 
-This implementation will return a valid `Account` or a list of every error encountered. We have also `leftMap`ped the error channels to provide a more pleasant error message.
+This implementation will return a valid `Account` or a list of every error encountered. We have also adapted the message in our error channels using `leftMap` to make it more readable.
 
 > **_Note:_** The usual `Either` behaviour is to fail fast and report only the first error encountered. We have taken advantage of the error-accumulating semantics when using `.parMapN` on a tuple of `Either[NonEmptyList[E], A]`. If you are familiar with `Validated`, this is  equivalent to converting from the `Either` to `ValidatedNel`s and back again — a nice trick I picked up from [a talk by Gabriel Volpe](https://www.youtube.com/watch?v=n1Y2V4zCZdQ).
 
