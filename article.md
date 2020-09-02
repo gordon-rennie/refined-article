@@ -1,6 +1,6 @@
 # Safe, Expressive Code with Refinement Types
 
-We devote a significant amount of time and attention as developers to ensuring that the data we receive and process is valid. We might enforce that usernames fall within a character limit, reject malformed URLs, guard against paying negative values, or countless more domain-specific cases. In these examples, the type system could not eliminate the errors: we may accept a parameter `username: String`, but we likely have no intention of allowing the empty string, strange Unicode glyphs, or strings thousands of characters in length!
+As developers we devote a lot of time and attention to validating the data we receive and process. We might enforce that usernames fall within a character limit, reject malformed URLs, guard against paying negative values, or countless more domain-specific cases. In these examples, the type system could not eliminate the errors: we may accept a parameter `username: String`, but we likely have no intention of allowing the empty string, strange Unicode glyphs, or strings thousands of characters in length!
 
 In this blog post I will explore _refinement types_ and their implementation in Scala's [`refined` library](https://github.com/fthomas/refined). Refinement types are a powerful tool for restricting the values passed into our logic, which help us fail fast and gracefully on invalid values. I'd particularly like to highlight the excellent interoperability of `refined` with Scala’s libraries, and how this can make our programs safer and easier to reason about for very little effort. 
 
@@ -85,7 +85,7 @@ $ Username.from("")
 | val res3: Either[String,Username] = Left(Left predicate of ((!isEmpty() && (!(0 < 0) && !(0 > 20))) && ()) failed: Left predicate of (!isEmpty() && (!(0 < 0) && !(0 > 20))) failed: Predicate isEmpty() did not fail.)
 ```
 
-Our refinement type `Username` and its smart constructor have replaced the validation logic we wrote previously. What have we gained by doing this?
+Our refinement type `Username` and its smart constructor (which we got from `RefinedTypeOps`) have replaced the validation logic we wrote previously. What have we gained by doing this?
 
 * our validations rules are expressed declaratively as a predicate in the type alias definition
 * the return type is our `Username` alias: we’ve retained the information that the base `String` has been validated, and have a contextually useful name
