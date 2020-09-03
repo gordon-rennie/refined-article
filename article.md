@@ -76,7 +76,7 @@ import eu.timepit.refined.collection.Forall
 
 type Username = String Refined (NonEmpty And MaxSize[20] And Forall[LetterOrDigit])
 
-object Username extends RefinedTypeOps[Username, String]  // "free" smart constructor amd more!
+object Username extends RefinedTypeOps[Username, String]  // "free" smart constructor and more!
 
 $ Username.from("Tito")
 | val res2: Either[String,Username] = Right(Tito)
